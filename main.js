@@ -8,17 +8,36 @@ main();
 
 var c;
 var c1;
-
+var grd;
+var rails1;
+var rails2;
+var cam_pos = [0, 4, 15];
+var look_at = [0, 0, 0];
+var track = 1;
+var jump = false;
 function main() {
 
-
+  	
   const canvas = document.querySelector('#glcanvas');
   const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 
-  c = new cube(gl, [2, 5.0, -3.0]);
-  c1 = new cube(gl, [1.5, 0.0, -6.0]);
+  player = new cube(gl, [-1.5, 0, 0]);
+  grd = new ground(gl, [0,-1,0]);
+  rails1 = new Rails(gl, [-2, -0.98, 0]);
+  rails2 = new Rails(gl, [2, -0.98, 0]);
   // If we don't have a GL context, give up now
-
+  document.addEventListener('keydown', function(event){
+  	console.log(event.keyCode);
+    if (event.keyCode == 37){//left
+    	track = 1;
+    }
+    if (event.keyCode == 39){//right
+    	track = 2;
+    }
+    if (event.keyCode == 32){
+    	
+    }
+  });
   if (!gl) {
     alert('Unable to initialize WebGL. Your browser or machine may not support it.');
     return;
@@ -82,19 +101,29 @@ function main() {
     now *= 0.001;  // convert to seconds
     const deltaTime = now - then;
     then = now;
-
+    tick();
     drawScene(gl, programInfo, deltaTime);
 
     requestAnimationFrame(render);
   }
   requestAnimationFrame(render);
 }
-
+function tick() {
+	player.tick();
+	if (track == 1 && player.pos[0] >= -1.5){
+		player.pos[0] -= 0.1;
+	}
+	else if (track == 2 && player.pos[0] <= 2){
+		player.pos[0] += 0.1;
+	}
+	cam_pos = [0, player.pos[1] + 4, player.pos[2] + 15];
+	look_at = [0, player.pos[1], player.pos[2]]; 
+}
 //
 // Draw the scene.
 //
 function drawScene(gl, programInfo, deltaTime) {
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
+  gl.clearColor(128/256, 212/256, 255/256, 1.0);  // Clear to black, fully opaque
   gl.clearDepth(1.0);                 // Clear everything
   gl.enable(gl.DEPTH_TEST);           // Enable depth testing
   gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
@@ -127,7 +156,7 @@ function drawScene(gl, programInfo, deltaTime) {
   // Set the drawing position to the "identity" point, which is
   // the center of the scene.
     var cameraMatrix = mat4.create();
-    mat4.translate(cameraMatrix, cameraMatrix, [2, 5, 0]);
+    mat4.translate(cameraMatrix, cameraMatrix, cam_pos);
     var cameraPosition = [
       cameraMatrix[12],
       cameraMatrix[13],
@@ -136,7 +165,7 @@ function drawScene(gl, programInfo, deltaTime) {
 
     var up = [0, 1, 0];
 
-    mat4.lookAt(cameraMatrix, cameraPosition, c.pos, up);
+    mat4.lookAt(cameraMatrix, cameraPosition, look_at, up);
 
     var viewMatrix = cameraMatrix;//mat4.create();
 
@@ -146,7 +175,10 @@ function drawScene(gl, programInfo, deltaTime) {
 
     mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
 
-  c.drawCube(gl, viewProjectionMatrix, programInfo, deltaTime);
+  player.drawCube(gl, viewProjectionMatrix, programInfo, deltaTime);
+  grd.drawGround(gl, viewProjectionMatrix, programInfo, deltaTime);
+  rails1.drawRails(gl, viewProjectionMatrix, programInfo, deltaTime);
+  rails2.drawRails(gl, viewProjectionMatrix, programInfo, deltaTime);
   //c1.drawCube(gl, projectionMatrix, programInfo, deltaTime);
 
 }

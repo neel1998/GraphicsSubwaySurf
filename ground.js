@@ -1,41 +1,18 @@
 /// <reference path="webgl.d.ts" />
 
-let cube = class {
+let ground = class {
     constructor(gl, pos) {
         this.positionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-        this.speed = 0.2;
+
         this.positions = [
-             // Front face
-             -1.0, -1.0, 1.0,
-             1.0, -1.0, 1.0,
-             1.0, 1.0, 1.0,
-             -1.0, 1.0, 1.0,
-             //Back Face
-             -1.0, -1.0, -1.0,
-             1.0, -1.0, -1.0,
-             1.0, 1.0, -1.0,
-             -1.0, 1.0, -1.0,
-             //Top Face
-             -1.0, 1.0, -1.0,
-             1.0, 1.0, -1.0,
-             1.0, 1.0, 1.0,
-             -1.0, 1.0, 1.0,
+          
              //Bottom Face
-             -1.0, -1.0, -1.0,
-             1.0, -1.0, -1.0,
-             1.0, -1.0, 1.0,
-             -1.0, -1.0, 1.0,
-             //Left Face
-             -1.0, -1.0, -1.0,
-             -1.0, 1.0, -1.0,
-             -1.0, 1.0, 1.0,
-             -1.0, -1.0, 1.0,
-             //Right Face
-             1.0, -1.0, -1.0,
-             1.0, 1.0, -1.0,
-             1.0, 1.0, 1.0,
-             1.0, -1.0, 1.0,
+             -1000.0, -1.0, -1000.0,
+             1000.0, -1.0, -1000.0,
+             1000.0, -1.0, 1000.0,
+             -1000.0, -1.0, 1000.0,
+             
         ];
 
         this.rotation = 0;
@@ -43,15 +20,9 @@ let cube = class {
         this.pos = pos;
 
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
-        
-        this.faceColors = [
-            [ 1,  0,  0,  1],    // Left face: purple
-            [ 1, 0, 0, 1], // Left face: purple
-            [ 0.7, 0.1, 0.1, 1], // Left face: purple
-            [ 1, 0, 0, 1], // Left face: purple
-            [ 1, 0, 0, 1], // Left face: purple
-            [ 1, 0, 0, 1], // Left face: purple
 
+        this.faceColors = [
+            [ 0.1,  0.5,  0.1,  1],    // Left face: purple
         ];
 
         var colors = [];
@@ -81,11 +52,6 @@ let cube = class {
 
         const indices = [
             0, 1, 2,    0, 2, 3, // front
-            4, 5, 6,    4, 6, 7,
-            8, 9, 10,   8, 10, 11,
-            12, 13, 14, 12, 14, 15,
-            16, 17, 18, 16, 18, 19,
-            20, 21, 22, 20, 22, 23, 
         ];
 
         // Now send the element array to GL
@@ -100,17 +66,15 @@ let cube = class {
         }
 
     }
-    tick() {
-    	this.pos[2] -= this.speed;
-    }
-    drawCube(gl, projectionMatrix, programInfo, deltaTime) {
+
+    drawGround(gl, projectionMatrix, programInfo, deltaTime) {
         const modelViewMatrix = mat4.create();
         mat4.translate(
             modelViewMatrix,
             modelViewMatrix,
             this.pos
         );
-        
+
         //this.rotation += Math.PI / (((Math.random()) % 100) + 50);
 
         mat4.rotate(modelViewMatrix,
@@ -175,7 +139,7 @@ let cube = class {
             modelViewMatrix);
 
         {
-            const vertexCount = 36;
+            const vertexCount = 6;
             const type = gl.UNSIGNED_SHORT;
             const offset = 0;
             gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);

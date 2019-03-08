@@ -15,17 +15,41 @@ var cam_pos = [0, 4, 15];
 var look_at = [0, 0, 0];
 var track = 1;
 var jump = false;
+var wall1;
+var wall2;
+var obstacle1_list;
+var obstacle2_list;
 function main() {
 
   	
   const canvas = document.querySelector('#glcanvas');
   const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 
-  player = new cube(gl, [-1.5, 0, 0]);
+  player = new cube(gl, [-1.2, 0, 0]);
   grd = new ground(gl, [0,-1,0]);
   rails1 = new Rails(gl, [-2, -0.98, 0]);
   rails2 = new Rails(gl, [2, -0.98, 0]);
-  // If we don't have a GL context, give up now
+  wall1 = new Wall(gl, [-5, 0, 0]);
+  wall2 = new Wall(gl, [5, 0, 0]);
+  obstacle1_list = [];
+  obstacle2_list = [];
+  for (var x = 0; x < 20 ; x ++){
+  	if (Math.random() < 0.5){
+  		obstacle1_list.push(new Obstacle1(gl, [-1.5, -1.5, (Math.random())*(-1000)]));
+  	}
+  	else {
+  		obstacle1_list.push(new Obstacle1(gl, [2, -1.5, (Math.random())*(-1000)]));
+  	}
+  }
+  for (var x = 0; x < 10 ; x ++){
+  	if (Math.random() < 0.5){
+  		obstacle2_list.push(new Obstacle2(gl, [-1.5, -1, (Math.random())*(-1000)]));
+  	}
+  	else {
+  		obstacle2_list.push(new Obstacle2(gl, [2, -1, (Math.random())*(-1000)]));
+  	}
+  }
+   // If we don't have a GL context, give up now
   document.addEventListener('keydown', function(event){
   	console.log(event.keyCode);
     if (event.keyCode == 37){//left
@@ -35,9 +59,19 @@ function main() {
     	track = 2;
     }
     if (event.keyCode == 32){
-    	
+    	if (player.pos[1] == 0){
+    		player.jump = 1;
+    	}
+    }
+    if (event.keyCode == 40){
+    	player.pos[1]  = -1;
     }
   });
+  // document.addEventListener('keyup', function(event){
+  //   if (event.keyCode == 40){
+  //   	player.pos[1]  = 0;
+  //   }
+  // });
   if (!gl) {
     alert('Unable to initialize WebGL. Your browser or machine may not support it.');
     return;
@@ -110,11 +144,11 @@ function main() {
 }
 function tick() {
 	player.tick();
-	if (track == 1 && player.pos[0] >= -1.5){
-		player.pos[0] -= 0.1;
+	if (track == 1 && player.pos[0] >= -1.2){
+		player.pos[0] -= 0.3;
 	}
-	else if (track == 2 && player.pos[0] <= 2){
-		player.pos[0] += 0.1;
+	else if (track == 2 && player.pos[0] <= 1.8){
+		player.pos[0] += 0.3;
 	}
 	cam_pos = [0, player.pos[1] + 4, player.pos[2] + 15];
 	look_at = [0, player.pos[1], player.pos[2]]; 
@@ -179,6 +213,15 @@ function drawScene(gl, programInfo, deltaTime) {
   grd.drawGround(gl, viewProjectionMatrix, programInfo, deltaTime);
   rails1.drawRails(gl, viewProjectionMatrix, programInfo, deltaTime);
   rails2.drawRails(gl, viewProjectionMatrix, programInfo, deltaTime);
+  wall1.drawWall(gl, viewProjectionMatrix, programInfo, deltaTime);
+  wall2.drawWall(gl, viewProjectionMatrix, programInfo, deltaTime);
+
+  for (var x = 0; x < 20; x ++){
+  	obstacle1_list[x].drawObstacle1(gl, viewProjectionMatrix, programInfo, deltaTime);
+  }
+  for (var x = 0; x < 10; x ++){
+  	obstacle2_list[x].drawObstacle2(gl, viewProjectionMatrix, programInfo, deltaTime);
+  }
   //c1.drawCube(gl, projectionMatrix, programInfo, deltaTime);
 
 }

@@ -4,9 +4,12 @@ let cube = class {
     constructor(gl, pos) {
         this.positionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-        this.speed = 0.2;
+        this.speed = 0.5;
         this.jump = 0;
         this.gravity = 0.08;
+        this.down = false;
+        this.score = 0;
+        this.coins = 0;
         this.positions = [
              // Front face
              -0.5, -0.5, 0.5,
@@ -39,12 +42,51 @@ let cube = class {
              0.5, 0.5, 0.5,
              0.5, -0.5, 0.5,
         ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+
+          const textureCoordBuffer = gl.createBuffer();
+		  gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+
+		  const textureCoordinates = [
+		    // Front
+		    0.0,  0.0,
+		    1.0,  0.0,
+		    1.0,  1.0,
+		    0.0,  1.0,
+		    // Back
+		    0.0,  0.0,
+		    1.0,  0.0,
+		    1.0,  1.0,
+		    0.0,  1.0,
+		    // Top
+		    0.0,  0.0,
+		    1.0,  0.0,
+		    1.0,  1.0,
+		    0.0,  1.0,
+		    // Bottom
+		    0.0,  0.0,
+		    1.0,  0.0,
+		    1.0,  1.0,
+		    0.0,  1.0,
+		    // Right
+		    0.0,  0.0,
+		    1.0,  0.0,
+		    1.0,  1.0,
+		    0.0,  1.0,
+		    // Left
+		    0.0,  0.0,
+		    1.0,  0.0,
+		    1.0,  1.0,
+		    0.0,  1.0,
+		  ];
+
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
+		                gl.STATIC_DRAW);
 
         this.rotation = 0;
 
         this.pos = pos;
 
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
         
         this.faceColors = [
             [ 1,  0,  0,  1],    // Left face: purple
@@ -99,18 +141,23 @@ let cube = class {
             position: this.positionBuffer,
             color: colorBuffer,
             indices: indexBuffer,
+            textureCoord: textureCoordBuffer,
+
         }
 
     }
     tick() {
+    	this.score += 1;
     	this.pos[2] -= this.speed;
-  		this.jump -= this.gravity;
-   		this.pos[1] += this.jump;
-   		if (this.pos[1] < 0){
-   			this.pos[1] = 0;
+    	if (!this.down){
+  			this.jump -= this.gravity;
+   			this.pos[1] += this.jump;
+   		}
+   		if (this.pos[1] < -1 && !this.down){
+   			this.pos[1] = -1;
    		}
     }
-    drawCube(gl, projectionMatrix, programInfo, deltaTime) {
+    drawCube(gl, projectionMatrix, programInfo, deltaTime, texture) {
         const modelViewMatrix = mat4.create();
         mat4.translate(
             modelViewMatrix,
@@ -146,21 +193,23 @@ let cube = class {
         // Tell WebGL how to pull out the colors from the color buffer
         // into the vertexColor attribute.
         {
-            const numComponents = 4;
-            const type = gl.FLOAT;
-            const normalize = false;
-            const stride = 0;
-            const offset = 0;
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.color);
-            gl.vertexAttribPointer(
-                programInfo.attribLocations.vertexColor,
-                numComponents,
-                type,
-                normalize,
-                stride,
-                offset);
-            gl.enableVertexAttribArray(
-                programInfo.attribLocations.vertexColor);
+            const num = 2; // every coordinate composed of 2 values
+		    const type = gl.FLOAT; // the data in the buffer is 32 bit float
+		    const normalize = false; // don't normalize
+		    const stride = 0; // how many bytes to get from one set to the next
+		    const offset = 0; // how many bytes inside the buffer to start from
+		    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.textureCoord);
+		    gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, num, type, normalize, stride, offset);
+		    gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
+
+		    // Tell WebGL we want to affect texture unit 0
+		    gl.activeTexture(gl.TEXTURE0);
+
+		    // Bind the texture to texture unit 0
+		    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+		    // Tell the shader we bound the texture to texture unit 0
+		    gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
         }
 
         // Tell WebGL which indices to use to index the vertices
@@ -181,11 +230,18 @@ let cube = class {
             false,
             modelViewMatrix);
 
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
         {
             const vertexCount = 36;
             const type = gl.UNSIGNED_SHORT;
             const offset = 0;
+
+
             gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+
+
         }
 
     }

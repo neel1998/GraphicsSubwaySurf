@@ -4,16 +4,13 @@ let Wall = class {
     constructor(gl, pos) {
         this.positionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-        this.speed = 0.2;
-        this.jump = 0;
-        this.gravity = 0.1;
         this.positions = [
              
              //Left Face
-             0, -2.0, -1000.0,
-             0, 2.0, -1000.0,
-             0, 2.0, 1000.0,
-             0, -2.0, 1000.0,
+             0, -2.0, -5000.0,
+             0, 2.0, -5000.0,
+             0, 2.0, 0.0,
+             0, -2.0, 0.0,
             
         ];
 
@@ -23,6 +20,18 @@ let Wall = class {
 
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
         
+         const textureCoordBuffer = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+
+          const textureCoordinates = [
+            0.0,  0.0,
+            1000.0,  0.0,
+            1000.0,  1000.0,
+            0.0,  1000.0,
+          ];
+
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
+                        gl.STATIC_DRAW);
         this.faceColors = [
             [ 37/256, 8/256, 8/256, 1], // Left face: purple
            
@@ -54,7 +63,7 @@ let Wall = class {
         // position.
 
         const indices = [
-            0, 1, 2,    0, 2, 3, // front
+            0, 1, 2,    1, 2, 3, // front
         ];
 
         // Now send the element array to GL
@@ -66,6 +75,7 @@ let Wall = class {
             position: this.positionBuffer,
             color: colorBuffer,
             indices: indexBuffer,
+            textureCoord: textureCoordBuffer,
         }
 
     }
@@ -77,7 +87,7 @@ let Wall = class {
    			this.pos[1] = 0;
    		}
     }
-    drawWall(gl, projectionMatrix, programInfo, deltaTime) {
+    drawWall(gl, projectionMatrix, programInfo, deltaTime, texture) {
         const modelViewMatrix = mat4.create();
         mat4.translate(
             modelViewMatrix,
@@ -113,21 +123,23 @@ let Wall = class {
         // Tell WebGL how to pull out the colors from the color buffer
         // into the vertexColor attribute.
         {
-            const numComponents = 4;
-            const type = gl.FLOAT;
-            const normalize = false;
-            const stride = 0;
-            const offset = 0;
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.color);
-            gl.vertexAttribPointer(
-                programInfo.attribLocations.vertexColor,
-                numComponents,
-                type,
-                normalize,
-                stride,
-                offset);
-            gl.enableVertexAttribArray(
-                programInfo.attribLocations.vertexColor);
+            const num = 2; // every coordinate composed of 2 values
+            const type = gl.FLOAT; // the data in the buffer is 32 bit float
+            const normalize = false; // don't normalize
+            const stride = 0; // how many bytes to get from one set to the next
+            const offset = 0; // how many bytes inside the buffer to start from
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.textureCoord);
+            gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, num, type, normalize, stride, offset);
+            gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
+
+            // Tell WebGL we want to affect texture unit 0
+            gl.activeTexture(gl.TEXTURE0);
+
+            // Bind the texture to texture unit 0
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+
+            // Tell the shader we bound the texture to texture unit 0
+            gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
         }
 
         // Tell WebGL which indices to use to index the vertices
@@ -147,12 +159,21 @@ let Wall = class {
             programInfo.uniformLocations.modelViewMatrix,
             false,
             modelViewMatrix);
+        gl.activeTexture(gl.TEXTURE0);
+
+  // Bind the texture to texture unit 0
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+
+  // Tell the shader we bound the texture to texture unit 0
+  gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
 
         {
             const vertexCount = 6;
             const type = gl.UNSIGNED_SHORT;
             const offset = 0;
+
             gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+
         }
 
     }

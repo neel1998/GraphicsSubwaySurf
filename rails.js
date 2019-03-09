@@ -7,35 +7,45 @@ let Rails = class {
 
         this.positions = [
           
-             -1, -1.0, -1000.0,
-             -0.5, -1.0, -1000.0,
-             -1, -1.0, 1000.0,
-             -0.5, -1.0, 1000.0,
+             -1, -1.0, -5000.0,
+             1.5, -1.0, -5000.0,
+             -1, -1.0, 0.0,
+             1.5, -1.0, 0.0,
 
-              1, -1.0, -1000.0,
-              1.5, -1.0, -1000.0,
-              1, -1.0, 1000.0,
-              1.5, -1.0, 1000.0,
+              // 1, -1.0, -5000.0,
+              // 1.5, -1.0, -5000.0,
+              // 1, -1.0, 0.0,
+              // 1.5, -1.0, 0.0,
              
         ];
         this.faceColors = [
             [ 0, 0, 0, 1],    
-            [ 0, 0, 0, 1],
         ];
-        for (var i = -1000; i < 1000; i += 4) {
-            this.positions.push(-1.5, -0.99, i);
-            this.positions.push(2, -0.99, i);
-            this.positions.push(-1.5, -0.99, i + 1);
-            this.positions.push(2, -0.99, i + 1);
-            this.faceColors.push([0.7, 0.7, 0.7, 1]);
-        }
+        // for (var i = -5000; i < 0; i += 4) {
+        //     this.positions.push(-1.5, -0.99, i);
+        //     this.positions.push(2, -0.99, i);
+        //     this.positions.push(-1.5, -0.99, i + 1);
+        //     this.positions.push(2, -0.99, i + 1);
+        //     this.faceColors.push([0.7, 0.7, 0.7, 1]);
+        // }
         this.rotation = 0;
 
         this.pos = pos;
 
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
 
-        
+        const textureCoordBuffer = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+
+          const textureCoordinates = [
+            0.0,  0.0,
+            100000.0,  0.0,
+            100000.0,  100000.0,
+            0.0,  100000.0,
+          ];
+
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
+                        gl.STATIC_DRAW);
 
         var colors = [];
 
@@ -61,10 +71,10 @@ let Rails = class {
         // indices into the vertex array to specify each triangle's
         // position.
 
-        const indices = [];
-        for (var i = 0; i < 2000; i += 4){
-            indices.push(i, i + 1, i + 2, i + 1, i + 2, i +3);
-        }    
+        const indices = [0,1,2,1,2,3];
+        // for (var i = 0; i < 5008; i += 4){
+        //     indices.push(i, i + 1, i + 2, i + 1, i + 2, i +3);
+        // }    
         // Now send the element array to GL
 
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
@@ -74,11 +84,12 @@ let Rails = class {
             position: this.positionBuffer,
             color: colorBuffer,
             indices: indexBuffer,
+            textureCoord: textureCoordBuffer,
         }
 
     }
 
-    drawRails(gl, projectionMatrix, programInfo, deltaTime) {
+    drawRails(gl, projectionMatrix, programInfo, deltaTime, texture) {
         const modelViewMatrix = mat4.create();
         mat4.translate(
             modelViewMatrix,
@@ -114,21 +125,23 @@ let Rails = class {
         // Tell WebGL how to pull out the colors from the color buffer
         // into the vertexColor attribute.
         {
-            const numComponents = 4;
-            const type = gl.FLOAT;
-            const normalize = false;
-            const stride = 0;
-            const offset = 0;
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.color);
-            gl.vertexAttribPointer(
-                programInfo.attribLocations.vertexColor,
-                numComponents,
-                type,
-                normalize,
-                stride,
-                offset);
-            gl.enableVertexAttribArray(
-                programInfo.attribLocations.vertexColor);
+            const num = 2; // every coordinate composed of 2 values
+            const type = gl.FLOAT; // the data in the buffer is 32 bit float
+            const normalize = false; // don't normalize
+            const stride = 0; // how many bytes to get from one set to the next
+            const offset = 0; // how many bytes inside the buffer to start from
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.textureCoord);
+            gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, num, type, normalize, stride, offset);
+            gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
+
+            // Tell WebGL we want to affect texture unit 0
+            gl.activeTexture(gl.TEXTURE0);
+
+            // Bind the texture to texture unit 0
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+
+            // Tell the shader we bound the texture to texture unit 0
+            gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
         }
 
         // Tell WebGL which indices to use to index the vertices
@@ -149,11 +162,17 @@ let Rails = class {
             false,
             modelViewMatrix);
 
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
+
         {
-            const vertexCount = 1512;
+            const vertexCount = 6;
             const type = gl.UNSIGNED_SHORT;
             const offset = 0;
+
             gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+
         }
 
     }

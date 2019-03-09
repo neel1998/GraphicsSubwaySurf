@@ -1,64 +1,96 @@
 /// <reference path="webgl.d.ts" />
 
-let Obstacle2 = class {
+let Police = class {
     constructor(gl, pos) {
         this.positionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-        this.speed = 0.2;
-        this.jump = 0;
-        this.gravity = 0.1;
+        this.caught = false;
         this.positions = [
              // Front face
-             -1, 0, 0,
-             1, 0, 0,
-             1, 3, 0,
-             -1, 3, 0,
-
-             -1, 0, 0,
-             -0.75, 0, 0,
-             -1, -1, 0,
-             -0.75, -1, 0,
-
-             1, 0, 0,
-             0.75, 0, 0,
-             1, -1, 0,
-             0.75, -1, 0,
-             
+             -0.5, -0.5, 0.5,
+             0.5, -0.5, 0.5,
+             0.5, 0.5, 0.5,
+             -0.5, 0.5, 0.5,
+             //Back Face
+             -0.5, -0.5, -0.5,
+             0.5, -0.5, -0.5,
+             0.5, 0.5, -0.5,
+             -0.5, 0.5, -0.5,
+             //Top Face
+             -0.5, 0.5, -0.5,
+             0.5, 0.5, -0.5,
+             0.5, 0.5, 0.5,
+             -0.5, 0.5, 0.5,
+             //Bottom Face
+             -0.5, -0.5, -0.5,
+             0.5, -0.5, -0.5,
+             0.5, -0.5, 0.5,
+             -0.5, -0.5, 0.5,
+             //Left Face
+             -0.5, -0.5, -0.5,
+             -0.5, 0.5, -0.5,
+             -0.5, 0.5, 0.5,
+             -0.5, -0.5, 0.5,
+             //Right Face
+             0.5, -0.5, -0.5,
+             0.5, 0.5, -0.5,
+             0.5, 0.5, 0.5,
+             0.5, -0.5, 0.5,
         ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+
+          const textureCoordBuffer = gl.createBuffer();
+		  gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+
+		  const textureCoordinates = [
+		    // Front
+		    0.0,  1.0,
+            1.0,  1.0,
+            1.0,  0.0,
+            0.0,  0.0,
+		    // Back
+		    0.0,  1.0,
+            1.0,  1.0,
+            1.0,  0.0,
+            0.0,  0.0,
+		    // Top
+            0.0,  0.0,
+            1.0,  0.0,
+            1.0,  1.0,
+		    0.0,  1.0,
+		    // Bottom
+            0.0,  1.0,
+            1.0,  1.0,
+            1.0,  0.0,
+		    0.0,  0.0,
+		    // Right
+            0.0,  1.0,
+            1.0,  1.0,
+            1.0,  0.0,
+		    0.0,  0.0,
+		    // Left
+            0.0,  1.0,
+            1.0,  1.0,
+            1.0,  0.0,
+		    0.0,  0.0,
+		  ];
+
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
+		                gl.STATIC_DRAW);
 
         this.rotation = 0;
 
         this.pos = pos;
 
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
         
-        const textureCoordBuffer = gl.createBuffer();
-          gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
-
-          const textureCoordinates = [
-            0.0,  3,
-            2,  3,
-            2,  0.0,
-            0.0,  0.0,
-
-            0.0,  10000,
-            10000,  10000,
-            10000,  0.0,
-            0.0,  0.0,
-
-            0.0,  10000,
-            10000,  10000,
-            10000,  0.0,
-            0.0,  0.0,
-          ];
-
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
-                        gl.STATIC_DRAW);
-
         this.faceColors = [
-            [ 38/256,  7/256,  0,  1],    
-            [ 38/256,  7/256,  0,  1],    
-            [ 38/256,  7/256,  0,  1],    
+            [ 1,  0,  0,  1],    // Left face: purple
+            [ 1, 0, 0, 1], // Left face: purple
+            [ 0.7, 0.1, 0.1, 1], // Left face: purple
+            [ 1, 0, 0, 1], // Left face: purple
+            [ 1, 0, 0, 1], // Left face: purple
+            [ 1, 0, 0, 1], // Left face: purple
+
         ];
 
         var colors = [];
@@ -88,8 +120,11 @@ let Obstacle2 = class {
 
         const indices = [
             0, 1, 2,    0, 2, 3, // front
-            4, 5, 6,    5, 6, 7,
-            8, 9, 10,   9, 10, 11,
+            4, 5, 6,    4, 6, 7,
+            8, 9, 10,   8, 10, 11,
+            12, 13, 14, 12, 14, 15,
+            16, 17, 18, 16, 18, 19,
+            20, 21, 22, 20, 22, 23, 
         ];
 
         // Now send the element array to GL
@@ -102,18 +137,14 @@ let Obstacle2 = class {
             color: colorBuffer,
             indices: indexBuffer,
             textureCoord: textureCoordBuffer,
+
         }
 
     }
     tick() {
-    	this.pos[2] -= this.speed;
-  		this.jump -= this.gravity;
-   		this.pos[1] += this.jump;
-   		if (this.pos[1] < 0){
-   			this.pos[1] = 0;
-   		}
+    	this.pos[2] -= 0.45;
     }
-    drawObstacle2(gl, projectionMatrix, programInfo, deltaTime, texture) {
+    drawPolice(gl, projectionMatrix, programInfo, deltaTime, texture) {
         const modelViewMatrix = mat4.create();
         mat4.translate(
             modelViewMatrix,
@@ -150,13 +181,13 @@ let Obstacle2 = class {
         // into the vertexColor attribute.
         {
             const num = 2; // every coordinate composed of 2 values
-            const type = gl.FLOAT; // the data in the buffer is 32 bit float
-            const normalize = false; // don't normalize
-            const stride = 0; // how many bytes to get from one set to the next
-            const offset = 0; // how many bytes inside the buffer to start from
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.textureCoord);
-            gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, num, type, normalize, stride, offset);
-            gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
+		    const type = gl.FLOAT; // the data in the buffer is 32 bit float
+		    const normalize = false; // don't normalize
+		    const stride = 0; // how many bytes to get from one set to the next
+		    const offset = 0; // how many bytes inside the buffer to start from
+		    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.textureCoord);
+		    gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, num, type, normalize, stride, offset);
+		    gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
         }
 
         // Tell WebGL which indices to use to index the vertices
@@ -176,15 +207,19 @@ let Obstacle2 = class {
             programInfo.uniformLocations.modelViewMatrix,
             false,
             modelViewMatrix);
+
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
-
         {
-            const vertexCount = 18;
+            const vertexCount = 36;
             const type = gl.UNSIGNED_SHORT;
             const offset = 0;
+
+
             gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+
+
         }
 
     }

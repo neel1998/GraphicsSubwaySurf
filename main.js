@@ -19,7 +19,9 @@ var wall1;
 var wall2;
 var obstacle1_list;
 var obstacle2_list;
+var obstacle3_list;
 var coins;
+var flying_coins;
 var rail_texture;
 var wall_texture;
 var player_texture;
@@ -28,8 +30,17 @@ var coin_texture;
 var obstacle1_texture;
 var jump_pu_list;
 var jump_texture;
+var boost_pu_list;
+var boost_texture;
 var jump_pu_count = 0;
 var jump_pu = false;
+var police;
+var police_texture;
+var sky;
+var sky_texture;
+var obstacle2_texture;
+var gray_scale = false;
+var flash = false;
 function main() {
 
   const canvas = document.querySelector('#glcanvas');
@@ -37,24 +48,40 @@ function main() {
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);	
 
-  rail_texture = loadTexture(gl, './rails_texture.jpg');
-  wall_texture = loadTexture(gl, './wall_texture3.png');
-  player_texture = loadTexture(gl, './cubetexture.png');
-  ground_texture = loadTexture(gl, './ground_texture.png');
-  coin_texture = loadTexture(gl, './coin_texture.png');
-  obstacle1_texture = loadTexture(gl, './obstacle1_texture3.jpg');
-  jump_texture = loadTexture(gl, './jump_texture.png')
+  document.getElementById("grayscale_btn").addEventListener('click', function(event){
+  	 gray_scale = !gray_scale;
+  });
+  setInterval(function(){
+  	 flash = !flash;
+  }, 500);
+  rail_texture = loadTexture(gl, './Textures/rails_texture.jpg');
+  wall_texture = loadTexture(gl, './Textures/wall_texture3.png');
+  player_texture = loadTexture(gl, './Textures/player_texture.jpeg');
+  ground_texture = loadTexture(gl, './Textures/ground_texture.png');
+  coin_texture = loadTexture(gl, './Textures/coin_texture.png');
+  obstacle1_texture = loadTexture(gl, './Textures/obstacle1_texture3.jpg');
+  obstacle3_texture = loadTexture(gl, './Textures/obstacle3_texture.jpg');
+  jump_texture = loadTexture(gl, './Textures/jump_texture.png');
+  boost_texture = loadTexture(gl, './Textures/boost_texture.png');
+  police_texture = loadTexture(gl, './Textures/police_texture.jpg');
+  sky_texture = loadTexture(gl, './Textures/sky_texture.jpg');
+  obstacle2_texture = loadTexture(gl, './Textures/obstacle2_texture.jpg');
 
   player = new cube(gl, [-1.2, -1, 0]);
+  police = new Police(gl, [-1.2, -1, 3]);
   grd = new ground(gl, [0,-1,0]);
   rails1 = new Rails(gl, [-2, -0.98, 0]);
   rails2 = new Rails(gl, [2, -0.98, 0]);
   wall1 = new Wall(gl, [-5, 0, 0]);
   wall2 = new Wall(gl, [5, 0, 0]);
+  sky = new Sky(gl, [0, 0, 0]);
   obstacle1_list = [];
   obstacle2_list = [];
+  obstacle3_list = [];
   coins = [];
+  flying_coins = [];
   jump_pu_list = [];
+  boost_pu_list = [];
   for (var x = 0; x < 500 ; x ++){
   	if (Math.random() < 0.5){
   		coins.push(new Coin(gl, [-1.5, -1.5, (Math.random())*(-5000)]));
@@ -66,17 +93,15 @@ function main() {
   for (var x = 0; x < 50 ; x ++){
   	if (Math.random() < 0.5){
   		obstacle1_list.push(new Obstacle1(gl, [-1.5, -1.5, (Math.random())*(-5000)]));
+  		obstacle2_list.push(new Obstacle2(gl, [-1.5, -1, (Math.random())*(-5000)]));
+  		obstacle3_list.push(new Obstacle3(gl, [-1.5, -1.5, (Math.random())*(-5000)]));
+
   	}
   	else {
   		obstacle1_list.push(new Obstacle1(gl, [2, -1.5, (Math.random())*(-5000)]));
-  	}
-  }
-  for (var x = 0; x < 50 ; x ++){
-  	if (Math.random() < 0.5){
-  		obstacle2_list.push(new Obstacle2(gl, [-1.5, -1, (Math.random())*(-5000)]));
-  	}
-  	else {
   		obstacle2_list.push(new Obstacle2(gl, [2, -1, (Math.random())*(-5000)]));
+  		obstacle3_list.push(new Obstacle3(gl, [2, -1.5, (Math.random())*(-5000)]));
+
   	}
   }
   for (var x = 0; x < 30 ; x ++){
@@ -86,6 +111,22 @@ function main() {
   	else {
   		jump_pu_list.push(new JumpPower(gl, [2, -1.5, (Math.random())*(-5000)]));
   	}
+  }
+  for (var x = 0; x < 30 ; x ++){
+  	if (Math.random() < 0.5){
+  		boost_pu_list.push(new BoostPower(gl, [-1.5, -1.5, (Math.random())*(-5000)]));
+  	}
+  	else {
+  		boost_pu_list.push(new BoostPower(gl, [2, -1.5, (Math.random())*(-5000)]));
+  	}
+  }
+  for (var x = 0; x < 30; x ++){
+  	if (x < 15){
+  		flying_coins.push(new Coin(gl, [-1.5, 4, x]));
+  	}	
+  	else {
+  		flying_coins.push(new Coin(gl, [2, 4, x]));
+  	}	
   }
    // If we don't have a GL context, give up now
   document.addEventListener('keydown', function(event){
@@ -112,13 +153,13 @@ function main() {
 	    	}
     	}
     }
-    if (event.keyCode == 40){
+    if (event.keyCode == 40 && !player.fly){
     	player.down = true;
     	player.pos[1]  = -2;
     }
   });
   document.addEventListener('keyup', function(event){
-    if (event.keyCode == 40){
+    if (event.keyCode == 40 && !player.fly){
     	player.pos[1]  = -1;
     	player.down = false;
     }
@@ -130,21 +171,21 @@ function main() {
 
   // Vertex shader program
 
+  // const vsSource1 = `
+  //   attribute vec4 aVertexPosition;
+  //   attribute vec4 aVertexColor;
+
+  //   uniform mat4 uModelViewMatrix;
+  //   uniform mat4 uProjectionMatrix;
+
+  //   varying lowp vec4 vColor;
+
+  //   void main(void) {
+  //     gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+  //     vColor = aVertexColor;
+  //   }
+  // `;
   const vsSource1 = `
-    attribute vec4 aVertexPosition;
-    attribute vec4 aVertexColor;
-
-    uniform mat4 uModelViewMatrix;
-    uniform mat4 uProjectionMatrix;
-
-    varying lowp vec4 vColor;
-
-    void main(void) {
-      gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-      vColor = aVertexColor;
-    }
-  `;
-  const vsSource2 = `
     attribute vec4 aVertexPosition;
     attribute vec2 aTextureCoord;
 
@@ -158,28 +199,58 @@ function main() {
       vTextureCoord = aTextureCoord;
     }
   `;
+
+
   // Fragment shader program
 
+  // temp = vColor;	
+  // gl_FragColor = vec4( (temp.r + temp.g + temp.b)/3.0, (temp.r + temp.g + temp.b)/3.0, (temp.r + temp.g + temp.b)/3.0, temp.a );
+  // const fsSource1 = `
+  //   varying lowp vec4 vColor;
+  //   highp vec4 temp;
+  //   void main(void) {
+  //     gl_FragColor = vColor;
+  //   }
+  // `;
+  // temp = texture2D(uSampler, vTextureCoord);	
+  // gl_FragColor = vec4( (temp.r + temp.g + temp.b)/3.0, (temp.r + temp.g + temp.b)/3.0, (temp.r + temp.g + temp.b)/3.0, temp.a );
   const fsSource1 = `
-    varying lowp vec4 vColor;
-
-    void main(void) {
-      gl_FragColor = vColor;
-    }
-  `;
-  const fsSource2 = `
     varying highp vec2 vTextureCoord;
+    highp vec4 temp;
 
     uniform sampler2D uSampler;
 
     void main(void) {
-      gl_FragColor = texture2D(uSampler, vTextureCoord);
+	      gl_FragColor = texture2D(uSampler, vTextureCoord);
+    }
+  `;
+  const fsSource2 = `
+    varying highp vec2 vTextureCoord;
+    highp vec4 temp;
+
+    uniform sampler2D uSampler;
+
+    void main(void) {
+	    temp = texture2D(uSampler, vTextureCoord);	
+  		gl_FragColor = vec4( (temp.r + temp.g + temp.b)/3.0, (temp.r + temp.g + temp.b)/3.0, (temp.r + temp.g + temp.b)/3.0, temp.a );
+    }
+  `;
+  const fsSource3 = `
+    varying highp vec2 vTextureCoord;
+    highp vec4 temp;
+
+    uniform sampler2D uSampler;
+
+    void main(void) {
+	    temp = texture2D(uSampler, vTextureCoord);	
+  		gl_FragColor = vec4( 1.2*temp.r, 1.2*temp.g, 1.2*temp.b, temp.a );
     }
   `;
   // Initialize a shader program; this is where all the lighting
   // for the vertices and so forth is established.
   const shaderProgram1 = initShaderProgram(gl, vsSource1, fsSource1);
-  const shaderProgram2 = initShaderProgram(gl, vsSource2, fsSource2);
+  const shaderProgram2 = initShaderProgram(gl, vsSource1, fsSource2);
+  const shaderProgram3 = initShaderProgram(gl, vsSource1, fsSource3);
 
   // Collect all the info needed to use the shader program.
   // Look up which attributes our shader program is using
@@ -189,11 +260,12 @@ function main() {
     program: shaderProgram1,
     attribLocations: {
       vertexPosition: gl.getAttribLocation(shaderProgram1, 'aVertexPosition'),
-      vertexColor: gl.getAttribLocation(shaderProgram1, 'aVertexColor'),
+      textureCoord: gl.getAttribLocation(shaderProgram1, 'aTextureCoord'),
     },
     uniformLocations: {
       projectionMatrix: gl.getUniformLocation(shaderProgram1, 'uProjectionMatrix'),
       modelViewMatrix: gl.getUniformLocation(shaderProgram1, 'uModelViewMatrix'),
+      uSampler: gl.getUniformLocation(shaderProgram1, 'uSampler'),
     },
   };
   const programInfo2 = {
@@ -208,6 +280,18 @@ function main() {
       uSampler: gl.getUniformLocation(shaderProgram2, 'uSampler'),
     },
   };
+  const programInfo3 = {
+    program: shaderProgram3,
+    attribLocations: {
+      vertexPosition: gl.getAttribLocation(shaderProgram3, 'aVertexPosition'),
+      textureCoord: gl.getAttribLocation(shaderProgram3, 'aTextureCoord'),
+    },
+    uniformLocations: {
+      projectionMatrix: gl.getUniformLocation(shaderProgram3, 'uProjectionMatrix'),
+      modelViewMatrix: gl.getUniformLocation(shaderProgram3, 'uModelViewMatrix'),
+      uSampler: gl.getUniformLocation(shaderProgram3, 'uSampler'),
+    },
+  };
   // Here's where we call the routine that builds all the
   // objects we'll be drawing.
   //const buffers
@@ -220,7 +304,12 @@ function main() {
     const deltaTime = now - then;
     then = now;
     tick();
-    drawScene(gl, programInfo1, programInfo2, deltaTime);
+    if (gray_scale){
+    	drawScene(gl, programInfo2, programInfo2, deltaTime);
+    }
+    else {
+    	drawScene(gl, programInfo1, programInfo3, deltaTime);
+    }
 
     requestAnimationFrame(render);
   }
@@ -230,11 +319,18 @@ function tick() {
 	document.getElementById("score_text").innerHTML = "Score:" + player.score;
 	document.getElementById("coin_text").innerHTML = "Coins:" + player.coins;
 	player.tick();
+	police.tick();
+	if (Math.abs(player.pos[2] - police.pos[2]) >= 15){
+		police.caught = false;
+	}
 	if (track == 1 && player.pos[0] >= -1.2){
 		player.pos[0] -= 0.3;
+		police.pos[0] -= 0.3;
+
 	}
 	else if (track == 2 && player.pos[0] <= 1.8){
 		player.pos[0] += 0.3;
+		police.pos[0] += 0.3;
 	}
 	if (player.down) {
 		cam_pos = [0, 3, player.pos[2] + 15];
@@ -249,14 +345,13 @@ function tick() {
 //
 // Draw the scene.
 //
-function drawScene(gl, programInfo1, programInfo2, deltaTime) {
-  gl.clearColor(128/256, 212/256, 255/256, 1.0);  // Clear to black, fully opaque
+function drawScene(gl, programInfo, programInfo2, deltaTime) {
+  gl.clearColor(1, 1, 1, 1.0);  // Clear to black, fully opaque
   gl.clearDepth(1.0);                 // Clear everything
   gl.enable(gl.DEPTH_TEST);           // Enable depth testing
   gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
 
   // Clear the canvas before we start drawing on it.
-
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   // Create a perspective matrix, a special matrix that is
@@ -269,7 +364,7 @@ function drawScene(gl, programInfo1, programInfo2, deltaTime) {
   const fieldOfView = 45 * Math.PI / 180;   // in radians
   const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
   const zNear = 0.1;
-  const zFar = 100.0;
+  const zFar = 3000.0;
   const projectionMatrix = mat4.create();
 
   // note: glmatrix.js always has the first argument
@@ -302,12 +397,14 @@ function drawScene(gl, programInfo1, programInfo2, deltaTime) {
 
     mat4.multiply(viewProjectionMatrix, projectionMatrix, viewMatrix);
 
-  player.drawCube(gl, viewProjectionMatrix, programInfo2, deltaTime, player_texture);
-  grd.drawGround(gl, viewProjectionMatrix, programInfo2, deltaTime, ground_texture);
-  rails1.drawRails(gl, viewProjectionMatrix, programInfo2, deltaTime, rail_texture);
-  rails2.drawRails(gl, viewProjectionMatrix, programInfo2, deltaTime, rail_texture);
-  wall1.drawWall(gl, viewProjectionMatrix, programInfo2, deltaTime, wall_texture);
-  wall2.drawWall(gl, viewProjectionMatrix, programInfo2, deltaTime, wall_texture);
+  player.drawCube(gl, viewProjectionMatrix, programInfo, deltaTime, player_texture);
+  police.drawPolice(gl, viewProjectionMatrix, programInfo, deltaTime, police_texture);
+  grd.drawGround(gl, viewProjectionMatrix, programInfo, deltaTime, ground_texture);
+  rails1.drawRails(gl, viewProjectionMatrix, programInfo, deltaTime, rail_texture);
+  rails2.drawRails(gl, viewProjectionMatrix, programInfo, deltaTime, rail_texture);
+  wall1.drawWall(gl, viewProjectionMatrix, (flash)?programInfo2:programInfo, deltaTime, wall_texture);
+  wall2.drawWall(gl, viewProjectionMatrix, (flash)?programInfo2:programInfo, deltaTime, wall_texture);
+  sky.drawSky(gl, viewProjectionMatrix, programInfo, deltaTime, sky_texture);
 
   for (var x = 0; x < 50; x ++){
   	if (Math.abs(obstacle1_list[x].pos[0] - player.pos[0]) <= 0.5 && Math.abs(obstacle1_list[x].pos[1] - player.pos[1]) <= 0.5 && Math.abs(obstacle1_list[x].pos[2] - player.pos[2]) <= 0.5){
@@ -315,7 +412,7 @@ function drawScene(gl, programInfo1, programInfo2, deltaTime) {
   		window.location.reload();
 	}
   	else{
-  		obstacle1_list[x].drawObstacle1(gl, viewProjectionMatrix, programInfo2, deltaTime, obstacle1_texture);
+  		obstacle1_list[x].drawObstacle1(gl, viewProjectionMatrix, programInfo, deltaTime, obstacle1_texture);
   	}
   }
   for (var x = 0; x < 50; x ++){
@@ -324,7 +421,25 @@ function drawScene(gl, programInfo1, programInfo2, deltaTime) {
  		window.location.reload();
   	}
   	else{
-  		obstacle2_list[x].drawObstacle2(gl, viewProjectionMatrix, programInfo1, deltaTime);
+  		obstacle2_list[x].drawObstacle2(gl, viewProjectionMatrix, programInfo, deltaTime, obstacle2_texture);
+  	}
+  }
+  for (var x = 0; x < 50; x ++){
+  	if (Math.abs(obstacle3_list[x].pos[0] - player.pos[0]) <= 0.5 && Math.abs(obstacle3_list[x].pos[1] - player.pos[1]) <= 0.5 && Math.abs(obstacle3_list[x].pos[2] - player.pos[2]) <= 0.5 && !obstacle3_list[x].collided){
+  		obstacle3_list[x].collided = true;
+  		if (!police.caught){
+  			police.pos[2] = player.pos[2] + 3;
+  			police.caught = true;
+  			break;
+  		}
+  		else{
+  			police.pos[2] = player.pos[2] + 1;
+  			window.alert("Caught By Police");
+ 			window.location.reload();
+  		}
+  	}
+  	else{
+  		obstacle3_list[x].drawObstacle3(gl, viewProjectionMatrix, programInfo, deltaTime, obstacle3_texture);
   	}
   }
   for (var x = 0; x < 500; x ++){
@@ -333,7 +448,7 @@ function drawScene(gl, programInfo1, programInfo2, deltaTime) {
   		player.coins += 1;
   	}
   	else {
-  		coins[x].drawCoin(gl, viewProjectionMatrix, programInfo2, deltaTime, coin_texture);
+  		coins[x].drawCoin(gl, viewProjectionMatrix, programInfo, deltaTime, coin_texture);
   	}
   }
   for (var x = 0; x < 30; x ++){
@@ -343,7 +458,32 @@ function drawScene(gl, programInfo1, programInfo2, deltaTime) {
   		jump_pu = true;
   	}
   	else {
-  		jump_pu_list[x].drawJumpPower(gl, viewProjectionMatrix, programInfo2, deltaTime, jump_texture);
+  		jump_pu_list[x].drawJumpPower(gl, viewProjectionMatrix, programInfo, deltaTime, jump_texture);
+  	}
+  }
+  for (var x = 0; x < 30; x ++){
+  	if (Math.abs(boost_pu_list[x].pos[0] - player.pos[0]) <= 0.5 && Math.abs(boost_pu_list[x].pos[1] - player.pos[1]) <= 0.5 && Math.abs(boost_pu_list[x].pos[2] - player.pos[2]) <= 0.5){
+  		player.fly = true;
+  		player.flydown = false;
+  		for (var y = 0; y < 30; y ++){
+  			flying_coins[y].pos[1] = 4;
+  			flying_coins[y].pos[2] = y + (player.pos[2] - 50);
+  		}
+  		setTimeout(function(){ player.fly = false; player.flydown = true }, 3000);
+  	}
+  	else {
+  		boost_pu_list[x].drawBoostPower(gl, viewProjectionMatrix, programInfo, deltaTime, boost_texture);
+  	}
+  }
+  if (player.fly){
+  	for (var y = 0; y < 30; y ++){
+  		if (Math.abs(flying_coins[y].pos[0] - player.pos[0]) <= 0.5 && Math.abs(flying_coins[y].pos[1] - player.pos[1]) <= 0.5 && Math.abs(flying_coins[y].pos[2] - player.pos[2]) <= 0.5){
+  			flying_coins[y].pos[1] = 1000;
+  			player.coins += 1;
+  		}
+  		else {
+  			flying_coins[y].drawCoin(gl, viewProjectionMatrix, programInfo, deltaTime, coin_texture);
+  		}
   	}
   }
   //c1.drawCube(gl, projectionMatrix, programInfo, deltaTime);

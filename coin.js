@@ -28,10 +28,10 @@ let Coin = class {
           gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
 
           const textureCoordinates = [
-            0.0,  0.0,
-            1,  0.0,
-            1,  1,
             0.0,  1,
+            1,  1,
+            1,  0.0,
+            0.0,  0.0,
           ];
 
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),

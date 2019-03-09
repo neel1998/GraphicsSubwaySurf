@@ -9,10 +9,10 @@ let JumpPower = class {
         this.gravity = 0.1;
         this.positions = [
              // Front face
-             -0.8, -0.8, 0,
-             0.8, -0.8, 0,
-             0.8, 0.8, 0,
-             -0.8, 0.8, 0,
+             -0.8, -0.5, 0,
+             0.8, -0.5, 0,
+             0.8, 1.3, 0,
+             -0.8, 1.3, 0,
              
         ];
 
@@ -28,10 +28,10 @@ let JumpPower = class {
           gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
 
           const textureCoordinates = [
-            0.0,  0.0,
-            1,  0.0,
-            1,  1,
             0.0,  1,
+            1,  1,
+            1,  0.0,
+            0.0,  0.0,
           ];
 
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),

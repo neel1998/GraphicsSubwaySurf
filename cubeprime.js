@@ -10,6 +10,8 @@ let cube = class {
         this.down = false;
         this.score = 0;
         this.coins = 0;
+        this.fly = false;
+        this.flydown = false;
         this.positions = [
              // Front face
              -0.5, -0.5, 0.5,
@@ -22,10 +24,10 @@ let cube = class {
              0.5, 0.5, -0.5,
              -0.5, 0.5, -0.5,
              //Top Face
-             -0.5, 0.5, -0.5,
-             0.5, 0.5, -0.5,
-             0.5, 0.5, 0.5,
              -0.5, 0.5, 0.5,
+             0.5, 0.5, 0.5,
+             0.5, 0.5, -0.5,
+             -0.5, 0.5, -0.5,
              //Bottom Face
              -0.5, -0.5, -0.5,
              0.5, -0.5, -0.5,
@@ -49,35 +51,35 @@ let cube = class {
 
 		  const textureCoordinates = [
 		    // Front
-		    0.0,  0.0,
-		    1.0,  0.0,
-		    1.0,  1.0,
 		    0.0,  1.0,
+            1.0,  1.0,
+            1.0,  0.0,
+            0.0,  0.0,
 		    // Back
-		    0.0,  0.0,
-		    1.0,  0.0,
-		    1.0,  1.0,
 		    0.0,  1.0,
+            1.0,  1.0,
+            1.0,  0.0,
+            0.0,  0.0,
 		    // Top
-		    0.0,  0.0,
-		    1.0,  0.0,
-		    1.0,  1.0,
 		    0.0,  1.0,
+            1.0,  1.0,
+            1.0,  0.0,
+            0.0,  0.0,
 		    // Bottom
+            0.0,  1.0,
+            1.0,  1.0,
+            1.0,  0.0,
 		    0.0,  0.0,
-		    1.0,  0.0,
-		    1.0,  1.0,
-		    0.0,  1.0,
 		    // Right
+            0.0,  1.0,
+            1.0,  1.0,
+            1.0,  0.0,
 		    0.0,  0.0,
-		    1.0,  0.0,
-		    1.0,  1.0,
-		    0.0,  1.0,
 		    // Left
+            0.0,  1.0,
+            1.0,  1.0,
+            1.0,  0.0,
 		    0.0,  0.0,
-		    1.0,  0.0,
-		    1.0,  1.0,
-		    0.0,  1.0,
 		  ];
 
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
@@ -149,13 +151,27 @@ let cube = class {
     tick() {
     	this.score += 1;
     	this.pos[2] -= this.speed;
-    	if (!this.down){
-  			this.jump -= this.gravity;
-   			this.pos[1] += this.jump;
-   		}
-   		if (this.pos[1] < -1 && !this.down){
-   			this.pos[1] = -1;
-   		}
+        if (this.fly) {
+            if (this.pos[1] < 4){
+                this.pos[1] += 0.1;
+            }
+        }
+        else if (this.flydown) {
+            this.pos[1] -= 0.1;
+            if (this.pos[1] < -1){
+                this.pos[1] = -1;
+                this.flydown = false;
+            }
+        }
+        else {
+        	if (!this.down){
+      			this.jump -= this.gravity;
+       			this.pos[1] += this.jump;
+       		}
+       		if (this.pos[1] < -1 && !this.down){
+       			this.pos[1] = -1;
+       		}
+        }
     }
     drawCube(gl, projectionMatrix, programInfo, deltaTime, texture) {
         const modelViewMatrix = mat4.create();

@@ -1,28 +1,15 @@
 /// <reference path="webgl.d.ts" />
 
-let Obstacle2 = class {
+let Sky = class {
     constructor(gl, pos) {
         this.positionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-        this.speed = 0.2;
-        this.jump = 0;
-        this.gravity = 0.1;
         this.positions = [
              // Front face
-             -1, 0, 0,
-             1, 0, 0,
-             1, 3, 0,
-             -1, 3, 0,
-
-             -1, 0, 0,
-             -0.75, 0, 0,
-             -1, -1, 0,
-             -0.75, -1, 0,
-
-             1, 0, 0,
-             0.75, 0, 0,
-             1, -1, 0,
-             0.75, -1, 0,
+             -1000000, -1000000, -3000,
+             1000000, -1000000, -3000,
+             1000000, 1000000, -3000,
+             -1000000, 1000000, -3000,
              
         ];
 
@@ -30,22 +17,14 @@ let Obstacle2 = class {
 
         this.pos = pos;
 
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
         
+        
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+
         const textureCoordBuffer = gl.createBuffer();
           gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
 
           const textureCoordinates = [
-            0.0,  3,
-            2,  3,
-            2,  0.0,
-            0.0,  0.0,
-
-            0.0,  10000,
-            10000,  10000,
-            10000,  0.0,
-            0.0,  0.0,
-
             0.0,  10000,
             10000,  10000,
             10000,  0.0,
@@ -54,15 +33,10 @@ let Obstacle2 = class {
 
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
                         gl.STATIC_DRAW);
-
         this.faceColors = [
-            [ 38/256,  7/256,  0,  1],    
-            [ 38/256,  7/256,  0,  1],    
-            [ 38/256,  7/256,  0,  1],    
+            [ 1,  1,  0,  1],    // Left face: purple
         ];
-
         var colors = [];
-
 
 
         for (var j = 0; j < this.faceColors.length; ++j) {
@@ -88,8 +62,6 @@ let Obstacle2 = class {
 
         const indices = [
             0, 1, 2,    0, 2, 3, // front
-            4, 5, 6,    5, 6, 7,
-            8, 9, 10,   9, 10, 11,
         ];
 
         // Now send the element array to GL
@@ -105,15 +77,7 @@ let Obstacle2 = class {
         }
 
     }
-    tick() {
-    	this.pos[2] -= this.speed;
-  		this.jump -= this.gravity;
-   		this.pos[1] += this.jump;
-   		if (this.pos[1] < 0){
-   			this.pos[1] = 0;
-   		}
-    }
-    drawObstacle2(gl, projectionMatrix, programInfo, deltaTime, texture) {
+    drawSky(gl, projectionMatrix, programInfo, deltaTime, texture) {
         const modelViewMatrix = mat4.create();
         mat4.translate(
             modelViewMatrix,
@@ -181,7 +145,7 @@ let Obstacle2 = class {
         gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
 
         {
-            const vertexCount = 18;
+            const vertexCount = 6;
             const type = gl.UNSIGNED_SHORT;
             const offset = 0;
             gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);

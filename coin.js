@@ -9,10 +9,10 @@ let Coin = class {
         this.gravity = 0.1;
         this.positions = [
              // Front face
-             -0.25, -0.25, 0,
-             0.25, -0.25, 0,
-             0.25, 0.25, 0,
-             -0.25, 0.25, 0,
+             -0.4, -0.4, 0,
+             0.4, -0.4, 0,
+             0.4, 0.4, 0,
+             -0.4, 0.4, 0,
              
         ];
 
@@ -20,14 +20,26 @@ let Coin = class {
 
         this.pos = pos;
 
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
         
+        
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
+
+        const textureCoordBuffer = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+
+          const textureCoordinates = [
+            0.0,  0.0,
+            1,  0.0,
+            1,  1,
+            0.0,  1,
+          ];
+
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
+                        gl.STATIC_DRAW);
         this.faceColors = [
             [ 1,  1,  0,  1],    // Left face: purple
         ];
-
         var colors = [];
-
 
 
         for (var j = 0; j < this.faceColors.length; ++j) {
@@ -64,6 +76,7 @@ let Coin = class {
             position: this.positionBuffer,
             color: colorBuffer,
             indices: indexBuffer,
+            textureCoord: textureCoordBuffer,
         }
 
     }
@@ -75,7 +88,7 @@ let Coin = class {
    			this.pos[1] = 0;
    		}
     }
-    drawCoin(gl, projectionMatrix, programInfo, deltaTime) {
+    drawCoin(gl, projectionMatrix, programInfo, deltaTime, texture) {
         const modelViewMatrix = mat4.create();
         mat4.translate(
             modelViewMatrix,
@@ -111,21 +124,14 @@ let Coin = class {
         // Tell WebGL how to pull out the colors from the color buffer
         // into the vertexColor attribute.
         {
-            const numComponents = 4;
-            const type = gl.FLOAT;
-            const normalize = false;
-            const stride = 0;
-            const offset = 0;
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.color);
-            gl.vertexAttribPointer(
-                programInfo.attribLocations.vertexColor,
-                numComponents,
-                type,
-                normalize,
-                stride,
-                offset);
-            gl.enableVertexAttribArray(
-                programInfo.attribLocations.vertexColor);
+            const num = 2; // every coordinate composed of 2 values
+            const type = gl.FLOAT; // the data in the buffer is 32 bit float
+            const normalize = false; // don't normalize
+            const stride = 0; // how many bytes to get from one set to the next
+            const offset = 0; // how many bytes inside the buffer to start from
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.textureCoord);
+            gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, num, type, normalize, stride, offset);
+            gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
         }
 
         // Tell WebGL which indices to use to index the vertices
@@ -145,6 +151,9 @@ let Coin = class {
             programInfo.uniformLocations.modelViewMatrix,
             false,
             modelViewMatrix);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
 
         {
             const vertexCount = 6;

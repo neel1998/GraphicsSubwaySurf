@@ -3,6 +3,8 @@
 let Wall = class {
     constructor(gl, pos) {
         this.positionBuffer = gl.createBuffer();
+        // this.texture = this.loadTexture(gl, './wall_texture3.png');
+
         gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
         this.positions = [
              
@@ -25,9 +27,9 @@ let Wall = class {
 
           const textureCoordinates = [
             0.0,  0.0,
-            1000.0,  0.0,
-            1000.0,  1000.0,
-            0.0,  1000.0,
+            1,  1000.0,
+            1,  1000,
+            0.0, 1000,
           ];
 
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
@@ -63,7 +65,7 @@ let Wall = class {
         // position.
 
         const indices = [
-            0, 1, 2,    1, 2, 3, // front
+            0, 1, 2,  0, 2, 3, // front
         ];
 
         // Now send the element array to GL
@@ -131,15 +133,6 @@ let Wall = class {
             gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.textureCoord);
             gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, num, type, normalize, stride, offset);
             gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
-
-            // Tell WebGL we want to affect texture unit 0
-            gl.activeTexture(gl.TEXTURE0);
-
-            // Bind the texture to texture unit 0
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-
-            // Tell the shader we bound the texture to texture unit 0
-            gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
         }
 
         // Tell WebGL which indices to use to index the vertices
@@ -160,12 +153,8 @@ let Wall = class {
             false,
             modelViewMatrix);
         gl.activeTexture(gl.TEXTURE0);
-
-  // Bind the texture to texture unit 0
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-
-  // Tell the shader we bound the texture to texture unit 0
-  gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
 
         {
             const vertexCount = 6;

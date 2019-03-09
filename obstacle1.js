@@ -22,6 +22,19 @@ let Obstacle1 = class {
 
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.positions), gl.STATIC_DRAW);
         
+        const textureCoordBuffer = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+
+          const textureCoordinates = [
+            0.0,  0.0,
+            1,  0.0,
+            1,  0.5,
+            0.0,  0.5,
+          ];
+
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
+                        gl.STATIC_DRAW);
+
         this.faceColors = [
             [ 0,  0,  1,  1],    // Left face: purple
         ];
@@ -69,6 +82,7 @@ let Obstacle1 = class {
             position: this.positionBuffer,
             color: colorBuffer,
             indices: indexBuffer,
+            textureCoord: textureCoordBuffer,
         }
 
     }
@@ -80,7 +94,7 @@ let Obstacle1 = class {
    			this.pos[1] = 0;
    		}
     }
-    drawObstacle1(gl, projectionMatrix, programInfo, deltaTime) {
+    drawObstacle1(gl, projectionMatrix, programInfo, deltaTime, texture) {
         const modelViewMatrix = mat4.create();
         mat4.translate(
             modelViewMatrix,
@@ -116,21 +130,14 @@ let Obstacle1 = class {
         // Tell WebGL how to pull out the colors from the color buffer
         // into the vertexColor attribute.
         {
-            const numComponents = 4;
-            const type = gl.FLOAT;
-            const normalize = false;
-            const stride = 0;
-            const offset = 0;
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.color);
-            gl.vertexAttribPointer(
-                programInfo.attribLocations.vertexColor,
-                numComponents,
-                type,
-                normalize,
-                stride,
-                offset);
-            gl.enableVertexAttribArray(
-                programInfo.attribLocations.vertexColor);
+            const num = 2; // every coordinate composed of 2 values
+            const type = gl.FLOAT; // the data in the buffer is 32 bit float
+            const normalize = false; // don't normalize
+            const stride = 0; // how many bytes to get from one set to the next
+            const offset = 0; // how many bytes inside the buffer to start from
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.textureCoord);
+            gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, num, type, normalize, stride, offset);
+            gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
         }
 
         // Tell WebGL which indices to use to index the vertices
@@ -150,7 +157,9 @@ let Obstacle1 = class {
             programInfo.uniformLocations.modelViewMatrix,
             false,
             modelViewMatrix);
-
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
         {
             const vertexCount = 6;
             const type = gl.UNSIGNED_SHORT;

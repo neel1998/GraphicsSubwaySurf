@@ -201,15 +201,6 @@ let cube = class {
 		    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer.textureCoord);
 		    gl.vertexAttribPointer(programInfo.attribLocations.textureCoord, num, type, normalize, stride, offset);
 		    gl.enableVertexAttribArray(programInfo.attribLocations.textureCoord);
-
-		    // Tell WebGL we want to affect texture unit 0
-		    gl.activeTexture(gl.TEXTURE0);
-
-		    // Bind the texture to texture unit 0
-		    gl.bindTexture(gl.TEXTURE_2D, texture);
-
-		    // Tell the shader we bound the texture to texture unit 0
-		    gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
         }
 
         // Tell WebGL which indices to use to index the vertices

@@ -20,19 +20,31 @@ var wall2;
 var obstacle1_list;
 var obstacle2_list;
 var coins;
+var rail_texture;
+var wall_texture;
 var player_texture;
 var ground_texture;
-var wall_texture;
-var rails_texture;
+var coin_texture;
+var obstacle1_texture;
+var jump_pu_list;
+var jump_texture;
+var jump_pu_count = 0;
+var jump_pu = false;
 function main() {
 
   const canvas = document.querySelector('#glcanvas');
   const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);	
 
+  rail_texture = loadTexture(gl, './rails_texture.jpg');
+  wall_texture = loadTexture(gl, './wall_texture3.png');
   player_texture = loadTexture(gl, './cubetexture.png');
-  ground_texture = loadTexture(gl, './ground_texture.png');	
-  wall_texture = loadTexture(gl, './wall_texture3.png');	
-  rails_texture = loadTexture(gl, './rails_texture.jpg');	
+  ground_texture = loadTexture(gl, './ground_texture.png');
+  coin_texture = loadTexture(gl, './coin_texture.png');
+  obstacle1_texture = loadTexture(gl, './obstacle1_texture3.jpg');
+  jump_texture = loadTexture(gl, './jump_texture.png')
+
   player = new cube(gl, [-1.2, -1, 0]);
   grd = new ground(gl, [0,-1,0]);
   rails1 = new Rails(gl, [-2, -0.98, 0]);
@@ -42,6 +54,7 @@ function main() {
   obstacle1_list = [];
   obstacle2_list = [];
   coins = [];
+  jump_pu_list = [];
   for (var x = 0; x < 500 ; x ++){
   	if (Math.random() < 0.5){
   		coins.push(new Coin(gl, [-1.5, -1.5, (Math.random())*(-5000)]));
@@ -66,6 +79,14 @@ function main() {
   		obstacle2_list.push(new Obstacle2(gl, [2, -1, (Math.random())*(-5000)]));
   	}
   }
+  for (var x = 0; x < 30 ; x ++){
+  	if (Math.random() < 0.5){
+  		jump_pu_list.push(new JumpPower(gl, [-1.5, -1.5, (Math.random())*(-5000)]));
+  	}
+  	else {
+  		jump_pu_list.push(new JumpPower(gl, [2, -1.5, (Math.random())*(-5000)]));
+  	}
+  }
    // If we don't have a GL context, give up now
   document.addEventListener('keydown', function(event){
     if (event.keyCode == 37){//left
@@ -75,8 +96,20 @@ function main() {
     	track = 2;
     }
     if (event.keyCode == 32){
-    	if (player.pos[1] == -1){
-    		player.jump = 1;
+    	if (jump_pu) {
+    		jump_pu_count += 1;
+    		if (jump_pu_count > 3) {
+    			jump_pu_count = 0;
+    			jump_pu = false;
+    		}
+    		if (player.pos[1] == -1){
+	    		player.jump = 1.5;
+	    	}
+    	}
+    	else {
+	    	if (player.pos[1] == -1){
+	    		player.jump = 0.7;
+	    	}
     	}
     }
     if (event.keyCode == 40){
@@ -271,16 +304,28 @@ function drawScene(gl, programInfo1, programInfo2, deltaTime) {
 
   player.drawCube(gl, viewProjectionMatrix, programInfo2, deltaTime, player_texture);
   grd.drawGround(gl, viewProjectionMatrix, programInfo2, deltaTime, ground_texture);
-  rails1.drawRails(gl, viewProjectionMatrix, programInfo2, deltaTime, rails_texture);
-  rails2.drawRails(gl, viewProjectionMatrix, programInfo2, deltaTime, rails_texture);
+  rails1.drawRails(gl, viewProjectionMatrix, programInfo2, deltaTime, rail_texture);
+  rails2.drawRails(gl, viewProjectionMatrix, programInfo2, deltaTime, rail_texture);
   wall1.drawWall(gl, viewProjectionMatrix, programInfo2, deltaTime, wall_texture);
   wall2.drawWall(gl, viewProjectionMatrix, programInfo2, deltaTime, wall_texture);
 
   for (var x = 0; x < 50; x ++){
-  	obstacle1_list[x].drawObstacle1(gl, viewProjectionMatrix, programInfo1, deltaTime);
+  	if (Math.abs(obstacle1_list[x].pos[0] - player.pos[0]) <= 0.5 && Math.abs(obstacle1_list[x].pos[1] - player.pos[1]) <= 0.5 && Math.abs(obstacle1_list[x].pos[2] - player.pos[2]) <= 0.5){
+  		window.alert("Game Over");
+  		window.location.reload();
+	}
+  	else{
+  		obstacle1_list[x].drawObstacle1(gl, viewProjectionMatrix, programInfo2, deltaTime, obstacle1_texture);
+  	}
   }
   for (var x = 0; x < 50; x ++){
-  	obstacle2_list[x].drawObstacle2(gl, viewProjectionMatrix, programInfo1, deltaTime);
+  	if (Math.abs(obstacle2_list[x].pos[0] - player.pos[0]) <= 0.5 && Math.abs(obstacle2_list[x].pos[1] - player.pos[1]) <= 2 && Math.abs(obstacle2_list[x].pos[2] - player.pos[2]) <= 0.5 && !player.down){
+  		window.alert("Game Over");
+ 		window.location.reload();
+  	}
+  	else{
+  		obstacle2_list[x].drawObstacle2(gl, viewProjectionMatrix, programInfo1, deltaTime);
+  	}
   }
   for (var x = 0; x < 500; x ++){
   	if (Math.abs(coins[x].pos[0] - player.pos[0]) <= 0.5 && Math.abs(coins[x].pos[1] - player.pos[1]) <= 0.5 && Math.abs(coins[x].pos[2] - player.pos[2]) <= 0.5){
@@ -288,7 +333,17 @@ function drawScene(gl, programInfo1, programInfo2, deltaTime) {
   		player.coins += 1;
   	}
   	else {
-  		coins[x].drawCoin(gl, viewProjectionMatrix, programInfo1, deltaTime);
+  		coins[x].drawCoin(gl, viewProjectionMatrix, programInfo2, deltaTime, coin_texture);
+  	}
+  }
+  for (var x = 0; x < 30; x ++){
+  	if (Math.abs(jump_pu_list[x].pos[0] - player.pos[0]) <= 0.5 && Math.abs(jump_pu_list[x].pos[1] - player.pos[1]) <= 0.5 && Math.abs(jump_pu_list[x].pos[2] - player.pos[2]) <= 0.5){
+  		jump_pu_list[x].pos[2] = 1000;
+  		jump_pu_count = 0;
+  		jump_pu = true;
+  	}
+  	else {
+  		jump_pu_list[x].drawJumpPower(gl, viewProjectionMatrix, programInfo2, deltaTime, jump_texture);
   	}
   }
   //c1.drawCube(gl, projectionMatrix, programInfo, deltaTime);
@@ -343,53 +398,29 @@ function loadShader(gl, type, source) {
   }
 
   return shader;
+  
 }
 function loadTexture(gl, url) {
-  const texture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-
-  // Because images have to be download over the internet
-  // they might take a moment until they are ready.
-  // Until then put a single pixel in the texture so we can
-  // use it immediately. When the image has finished downloading
-  // we'll update the texture with the contents of the image.
-  const level = 0;
-  const internalFormat = gl.RGBA;
-  const width = 1;
-  const height = 1;
-  const border = 0;
-  const srcFormat = gl.RGBA;
-  const srcType = gl.UNSIGNED_BYTE;
-  const pixel = new Uint8Array([0, 0, 255, 255]);  // opaque blue
-  gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-                width, height, border, srcFormat, srcType,
-                pixel);
-
-  const image = new Image();
-  image.onload = function() {
+    const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const width = 1;
+    const height = 1;
+    const border = 0;
+    const srcFormat = gl.RGBA;
+    const srcType = gl.UNSIGNED_BYTE;
+    const pixel = new Uint8Array([0, 0, 255, 255]);  // opaque blue
     gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
-                  srcFormat, srcType, image);
-
-    // WebGL1 has different requirements for power of 2 images
-    // vs non power of 2 images so check if the image is a
-    // power of 2 in both dimensions.
-    if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
-       // Yes, it's a power of 2. Generate mips.
-       gl.generateMipmap(gl.TEXTURE_2D);
-    } else {
-       // No, it's not a power of 2. Turn off mips and set
-       // wrapping to clamp to edge
-       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    }
-  };
-  image.src = url;
-
-  return texture;
-}
-
-function isPowerOf2(value) {
-  return (value & (value - 1)) == 0;
-}
+                  width, height, border, srcFormat, srcType,
+                  pixel);
+    const image = new Image();
+    image.onload = function() {
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texImage2D(gl.TEXTURE_2D, level, internalFormat,
+                   srcFormat, srcType, image);
+      gl.generateMipmap(gl.TEXTURE_2D);
+    };
+    image.src = url;
+    return texture;
+ }

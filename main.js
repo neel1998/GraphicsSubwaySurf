@@ -41,6 +41,8 @@ var sky_texture;
 var obstacle2_texture;
 var gray_scale = false;
 var flash = false;
+var end;
+var end_flag = false;
 function main() {
 
   const canvas = document.querySelector('#glcanvas');
@@ -66,6 +68,7 @@ function main() {
   police_texture = loadTexture(gl, './Textures/police_texture.jpg');
   sky_texture = loadTexture(gl, './Textures/sky_texture.jpg');
   obstacle2_texture = loadTexture(gl, './Textures/obstacle2_texture.jpg');
+  end_texture = loadTexture(gl, './Textures/end_texture.png');
 
   player = new cube(gl, [-1.2, -1, 0]);
   police = new Police(gl, [-1.2, -1, 3]);
@@ -75,6 +78,7 @@ function main() {
   wall1 = new Wall(gl, [-5, 0, 0]);
   wall2 = new Wall(gl, [5, 0, 0]);
   sky = new Sky(gl, [0, 0, 0]);
+  end = new End(gl, [0, 5, -3000]);
   obstacle1_list = [];
   obstacle2_list = [];
   obstacle3_list = [];
@@ -316,6 +320,14 @@ function main() {
   requestAnimationFrame(render);
 }
 function tick() {
+  if (player.score >= 2000 && !end_flag) {
+    end_flag = true;
+    end.pos[2] = player.pos[2] - 100;
+  }
+  if (player.pos[2] < end.pos[2]) {
+    window.alert("You Won " + "Coins: " + player.coins + " Score: " + player.score);
+    window.location.reload();
+  }
 	document.getElementById("score_text").innerHTML = "Score:" + player.score;
 	document.getElementById("coin_text").innerHTML = "Coins:" + player.coins;
 	player.tick();
@@ -405,6 +417,7 @@ function drawScene(gl, programInfo, programInfo2, deltaTime) {
   wall1.drawWall(gl, viewProjectionMatrix, (flash)?programInfo2:programInfo, deltaTime, wall_texture);
   wall2.drawWall(gl, viewProjectionMatrix, (flash)?programInfo2:programInfo, deltaTime, wall_texture);
   sky.drawSky(gl, viewProjectionMatrix, programInfo, deltaTime, sky_texture);
+  end.drawEnd(gl, viewProjectionMatrix, programInfo, deltaTime, end_texture);
 
   for (var x = 0; x < 50; x ++){
   	if (Math.abs(obstacle1_list[x].pos[0] - player.pos[0]) <= 0.5 && Math.abs(obstacle1_list[x].pos[1] - player.pos[1]) <= 0.5 && Math.abs(obstacle1_list[x].pos[2] - player.pos[2]) <= 0.5){
